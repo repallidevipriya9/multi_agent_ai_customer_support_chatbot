@@ -1,0 +1,1245 @@
+{
+  "name": "chatbot_integration",
+  "nodes": [
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1152,
+        592
+      ],
+      "id": "89f54b7c-f9b1-49c7-ad6b-c957f97ea03b",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the Final Response Synthesiser for an e-commerce customer support system.\n\n\n\nSpecialist Agent Responses:\n{{ $json.responses }}\n\nYour task is to combine all specialist responses into one clear, natural and customer-friendly reply.\n\nInstructions\n\n- Read all specialist responses.\n- Ignore empty responses.\n- Ignore responses that only state another agent should answer.\n- Ignore disclaimers that are superseded by another specialist response.\n- If one specialist has already answered a topic, remove any other response that merely says it cannot answer that topic.\n- Keep only the most relevant answer for each topic.\n- Merge complementary information together.\n- Remove duplicate information.\n- Preserve all factual information.\n- Never invent information.\n- Do not mention agents, tools or internal processing.\n- End with a polite closing when appropriate.\n\nStyle:\n- Friendly\n- Professional\n- Clear\n- Easy to understand\n- Based on no of agent responses you can \n  decide maximum number of words. Try to keep response crisp and short.\n  For example if only one agent responded then it shouldn't be more than 80 words You can use your expert judgement to decide no of words. \n- Present in Markdown format \n\nReturn ONLY the final customer response as plain text.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1904,
+        672
+      ],
+      "id": "f70837e2-c1d8-426c-9b8f-0402e593c657",
+      "name": "Synthesizer Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an Agent Router for an e-commerce customer support system.\n\nCustomer Message:\n{{ $json.chatInput }}\n\nYour task is to identify ALL specialist agents required to completely answer the customer's request.\n\nAvailable agents:\n- order_status\n- return_refund\n- product_query\n- general_faq\n- fallback\n\nYour job is ONLY to determine which specialist agents should handle the request.\n\nDo NOT answer the customer's question.\n\n--------------------------------------------------\nGeneral Rules\n--------------------------------------------------\n\n1. A customer message may require one or more specialist agents.\n\n2. Return EVERY agent required to answer ALL parts of the customer's request.\n\n3. Do NOT select an agent simply because related words appear in the message.\n\n4. Route based on the INFORMATION REQUIRED, not just keywords.\n\n5. Distinguish between:\n\nA. Customer-specific information\nRequires looking up the customer's order or return.\n\nExamples:\n- Order status\n- Shipment status\n- Delivery status\n- Tracking\n- Return status\n- Refund status\n- Refund amount\n- Exchange status\n- Replacement status\n\nB. Company policy / process information\nRequires looking up company policies or knowledge base.\n\nExamples:\n- Return policy\n- Refund policy\n- Shipping policy\n- Warranty\n- Payment methods\n- Cancellation policy\n- Exchange policy\n- Refund timeline\n- Processing time\n- Return eligibility\n- Business rules\n- How the process works\n\nIf BOTH types of information are required,\nreturn BOTH specialist agents.\n\n--------------------------------------------------\nAgent Selection Rules\n--------------------------------------------------\n\norder_status\n\nSelect ONLY if the customer wants information about:\n\n- Order tracking\n- Shipment status\n- Delivery status\n- Courier information\n- Package location\n- Expected delivery\n- Dispatch status\n\nDo NOT select simply because:\n- an Order ID is mentioned\n- the word \"order\" appears\n\n--------------------------------------------------\n\nreturn_refund\n\nSelect ONLY if the customer is asking about THEIR OWN return or refund.\n\nExamples:\n- Return status\n- Refund status\n- Refund amount\n- Return request status\n- Exchange request\n- Replacement request\n- Return pickup\n- Refund approval\n\nDo NOT use this agent for general refund policies or timelines unless the customer is also asking about their own order.\n\n--------------------------------------------------\n\nproduct_query\n\nSelect when the customer asks about:\n\n- Product specifications\n- Features\n- Compatibility\n- Dimensions\n- Materials\n- Colours\n- Product recommendations\n- Product comparisons\n- Pricing\n- Availability\n- Technical details\n\n--------------------------------------------------\n\ngeneral_faq\n\nSelect when the customer asks about company policies, business rules or processes.\n\nExamples:\n\n- Return policy\n- Refund policy\n- Shipping policy\n- Warranty\n- Payment methods\n- Cancellation policy\n- Exchange policy\n- Refund timeline\n- Return timeline\n- How long refunds take\n- When refunds are processed\n- Return eligibility\n- Business process\n- Account help\n- Store policies\n\nIMPORTANT:\n\nIf the customer asks:\n\n\"When will I get my refund?\"\n\nOR\n\n\"How long does the refund process take?\"\n\nAND they are also asking about THEIR OWN refund,\n\nthen BOTH agents are required:\n\n- return_refund\n- general_faq\n\nReason:\n- Return Agent provides the customer's actual refund status.\n- FAQ Agent provides the company's refund processing policy/timeline.\n\n--------------------------------------------------\n\nfallback\n\nSelect ONLY when none of the above agents apply.\n\nExamples:\n- Greetings\n- Small talk\n- Unclear requests\n- Off-topic questions\n- Low confidence\n\n--------------------------------------------------\nExamples\n--------------------------------------------------\n\nCustomer:\nWhere is my order ORD1001?\n\nOutput:\n[\"order_status\"]\n\n--------------------\n\nCustomer:\nWhat is the return status of my order ORD1001?\n\nOutput:\n[\"return_refund\"]\n\n--------------------\n\nCustomer:\nWhat is the return status of my order ORD1001?\nWhat is your refund policy?\n\nOutput:\n[\"return_refund\",\"general_faq\"]\n\n--------------------\n\nCustomer:\nWhat is the return status of my order ORD1001?\nWhen will I get my refund?\n\nOutput:\n[\"return_refund\",\"general_faq\"]\n\n--------------------\n\nCustomer:\nMy refund is pending.\nHow long will it take?\n\nOutput:\n[\"return_refund\",\"general_faq\"]\n\n--------------------\n\nCustomer:\nHow long do refunds usually take?\n\nOutput:\n[\"general_faq\"]\n\n--------------------\n\nCustomer:\nWhat is your shipping policy?\n\nOutput:\n[\"general_faq\"]\n\n--------------------\n\nCustomer:\nTrack my order ORD1001 and tell me your return policy.\n\nOutput:\n[\"order_status\",\"general_faq\"]\n\n--------------------\n\nCustomer:\nWhere is my order ORD1001 and what is my refund status?\n\nOutput:\n[\"order_status\",\"return_refund\"]\n\n--------------------\n\nCustomer:\nTell me about the Apple iPhone 16 Pro.\n\nOutput:\n[\"product_query\"]\n\n--------------------\n\nCustomer:\nIs Chromecast compatible with Samsung TV?\n\nOutput:\n[\"product_query\"]\n\n--------------------\n\nCustomer:\nTell me about Chromecast and your warranty.\n\nOutput:\n[\"product_query\",\"general_faq\"]\n\n--------------------\n\nCustomer:\nHello\n\nOutput:\n[\"fallback\"]\n\n--------------------------------------------------\nOutput Rules\n--------------------------------------------------\n\nReturn ONLY a valid JSON array.\n\nExamples:\n\n[\"order_status\"]\n\n[\"return_refund\"]\n\n[\"return_refund\",\"general_faq\"]\n\n[\"order_status\",\"general_faq\"]\n\n[\"product_query\"]\n\n[\"fallback\"]\n\nDo NOT include explanations.\n\nDo NOT include markdown.\n\nDo NOT include additional text.\n\nReturn ONLY the JSON array.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1168,
+        368
+      ],
+      "id": "f990e562-1bc7-4b3f-91e9-e818a9214d6f",
+      "name": "Orchestration Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the Order Management Agent for an e-commerce customer support system.\nCustomer Query:\n{{ $json.chatInput }}\n\nOrder ID:\n{{ $json.order_id }}\n\n\nYour responsibility is to answer ONLY order-related questions.\n\nYou can answer questions about:\n- Order status\n- Shipment status\n- Tracking\n- Delivery status\n- Expected delivery\n- Courier information\n- Package location\n\nRules\n\n1. If order_id is empty or null:\n   - Do NOT call the tool.\n   - Respond:\n     \"Could you please provide your Order ID?\"\n\n2. Otherwise:\n   - Use the provided Order ID to call the Get_Order_Detail tool.\n\n3. Never modify or extract the Order ID yourself.\n\n4. Never answer questions about:\n   - Returns\n   - Refunds\n   - Company policies\n   - Product information\n\n5. Never mention tools or internal processing.\n\n6. Keep the response under 100 words.\n\nReturn ONLY valid JSON.\n\n{\n  \"agent\":\"Order Management\",\n  \"response\":\"<customer-friendly response>\"\n}\n\n\n\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "070a9169-3c48-4b96-ac72-14d7bc6df523",
+      "name": "Order_Management_Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "You are the Fallback Customer Support Agent.\n\nCustomer Query:\n{{ $json.chatInput }}\n\nUse the available Knowledge Base tool when it can help answer the customer's question.\n\nRules:\n- Respond only when no specialist agent is more appropriate.\n- Ignore any Order IDs in the customer query.\n- Never provide order-specific, return-specific, or refund-specific information.\n- Never invent company policies or product details.\n- Do not mention tools or internal processing.\n- Keep the response friendly and concise.\n\nReturn ONLY valid JSON.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        16,
+        672
+      ],
+      "id": "1924a0c7-2291-4f01-a923-01f08db5a295",
+      "name": "Fallback_LLM_Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the Product Information Agent for an e-commerce customer support system.\n\nCustomer Query:\n{{ $json.chatInput }}\n\nYour responsibility is to answer ONLY product-related questions.\n\nAlways search the Product Knowledge Base (RAG) before answering.\n\nRules:\n- Always use the RAG tool.\n- Base your answer only on the retrieved information.\n- Never invent product details.\n- Ignore any order numbers that may appear in the customer query.\n- Do not answer questions about:\n  - order status\n  - returns\n  - refunds\n  - company policies\n- Do not mention the RAG tool.\n- Keep the response under 120 words.\n\nReturn ONLY valid JSON.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        32,
+        1152
+      ],
+      "id": "1aa926a7-7efb-43c3-a557-4a6ea8b91f66",
+      "name": "Product_Info_Agent"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the General FAQ Agent for an e-commerce customer support system.\n\nCustomer Query:\n{{ $json.chatInput }}\n\nYour responsibility is to answer ONLY company policy and general FAQ questions.\n\nAlways search the Company Knowledge Base (RAG) before answering.\n\nRules:\n- Always use the RAG tool.\n- Base your answer only on retrieved information.\n- Ignore any Order IDs or product names unless they are required to understand the policy question.\n- If the customer asks both an order-specific question and a policy question, answer ONLY the policy question.\n- Never answer order tracking or return/refund status.\n- Never mention the RAG tool.\n- Keep the response under 120 words.\n\nReturn ONLY valid JSON.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        16,
+        912
+      ],
+      "id": "a88dc63f-a87d-4487-a25a-1961b63102b0",
+      "name": "FAQ_Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('Webhook').item.json.body.session_id }} "
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        -1024,
+        592
+      ],
+      "id": "87facb88-f070-4d19-8940-122cbbc82bed",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1904,
+        880
+      ],
+      "id": "39e21566-87b6-47e1-aa7d-0a4c58a97eb0",
+      "name": "OpenAI Chat Model2",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -32,
+        816
+      ],
+      "id": "8b0298a7-1e86-4c89-92ce-0a5fd08cff1b",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        304,
+        176
+      ],
+      "id": "2dd17011-59c4-410b-8982-01f5be49b861",
+      "name": "OpenAI Chat Model3",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -16,
+        1392
+      ],
+      "id": "f67fad44-f1d2-4d1a-83b1-1823e007bb4b",
+      "name": "OpenAI Chat Model4",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intents }}}",
+                    "rightValue": "order_status",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "41e2d8d1-787a-4f2b-b089-b1477d8ccfed"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Order_Status"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "8512ca0b-7c58-463f-8dd8-51b0c6b5ba6b",
+                    "leftValue": "={{ $json.intents }}",
+                    "rightValue": "return_refund",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Return_Refund"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "4a4f0d6d-eab8-443e-852f-4a48b1dc1e0a",
+                    "leftValue": "={{ $json.intents }}",
+                    "rightValue": "fallback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Fallback"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "966afc75-c965-45be-9262-a263235bef28",
+                    "leftValue": "={{ $json.intents }}",
+                    "rightValue": "general_faq",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FAQ"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "89a63c45-b6a8-4fa9-8e0d-2c07571eb21b",
+                    "leftValue": "={{ $json.intents }}",
+                    "rightValue": "product_query",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Product_Query"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -368,
+        320
+      ],
+      "id": "28aea912-6498-4bdf-9aae-f71f8440f4d9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -32,
+        1072
+      ],
+      "id": "33963297-6d0b-4ebe-928b-a346480ae5a7",
+      "name": "OpenAI Chat Model5",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "=intents",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -592,
+        368
+      ],
+      "id": "2cf63315-6fde-4b89-af1d-a1aafa193062",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retrieves complete order details using an Order ID.\nUse this tool only for order tracking, shipment, delivery, courier, payment status and order status questions.",
+        "url": "=https://laughing-succotash-xrwxqp57v9p434vw-8000.app.github.dev/support/order/{{$json.order_id}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        512,
+        176
+      ],
+      "id": "ef267538-0c6a-4cd8-b32d-2f9748e3ca83",
+      "name": "Get_Order_Detail"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        368,
+        496
+      ],
+      "id": "ff181a6b-aab5-48fa-8da5-3a89ed94d66f",
+      "name": "OpenAI Chat Model6",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retrieves complete order details using an Order ID.\nUse this tool only for order tracking, shipment, delivery, courier, payment status and order status questions.",
+        "url": "=http://laughing-succotash-xrwxqp57v9p434vw-8000/support/return/{{$fromAI(\"order_id\")}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.4,
+      "position": [
+        544,
+        496
+      ],
+      "id": "075d07fa-5fed-40b7-bbd7-46e6986c1eb8",
+      "name": "Get_Return_Refund_Status1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the Return & Refund Agent for an e-commerce customer support system.\n\nCustomer Query:\n{{ $json.chatInput }}\n\nOrder ID:\n{{ $json.order_id }}\n\nYour responsibility is to answer ONLY return and refund related questions.\n\nYou can answer questions about:\n- Return status\n- Refund status\n- Return request\n- Exchange\n- Replacement\n\nRules\n\n1. If order_id is empty or null:\n   - Do NOT call the tool.\n   - Respond:\n     \"Could you please provide your Order ID?\"\n\n2. Otherwise:\n   - Use the provided Order ID to call the Get_Return_Refund_Status tool.\n\n3. Never modify or extract the Order ID yourself.\n\n4. Never answer questions about:\n   - Order tracking\n   - Company policies\n   - Product information\n\n5. Never mention tools or internal processing.\n\n6. Keep the response under 100 words.\n\nReturn ONLY valid JSON.\n\n{\n  \"agent\":\"Return & Refund\",\n  \"response\":\"<customer-friendly response>\"\n}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        384,
+        320
+      ],
+      "id": "281158d6-8e6a-47c6-9648-c764411c3318",
+      "name": "Return_Refund Agent"
+    },
+    {
+      "parameters": {
+        "numberInputs": 5
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1456,
+        624
+      ],
+      "id": "abc4b19e-a399-4e43-b899-b1fef6698f31",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const intents = JSON.parse($json.output);\n\nreturn [{\n  json: {\n    chatInput: $('Extract Context').first().json.chatInput,\n    order_id: $('Extract Context').first().json.order_id,\n    hasOrderId: $('Extract Context').first().json.hasOrderId,\n    intents\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -816,
+        368
+      ],
+      "id": "133a06b8-e633-4b44-8838-e9354485db55",
+      "name": "Order ID and Intent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const chatInput = ($json.guardrailsInput || \"\").trim();\n\nconst regex = /\\bord[\\s-]?(\\d+)\\b/i;\nconst match = chatInput.match(regex);\n\nconst order_id = match ? `ORD${match[1]}` : null;\n\n// Get sessionId from the webhook payload\n\n\nreturn [{\n  json: {\n    ...$json,\n    chatInput,\n    order_id,\n    hasOrderId: !!order_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1504,
+        160
+      ],
+      "id": "5bdab7f1-0a1c-4151-b82c-7013ca33ca78",
+      "name": "Extract Context"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "=Based on the query {{ $json.chatInput }}",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "capecomfaq",
+          "mode": "list",
+          "cachedResultName": "capecomfaq"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        640,
+        1024
+      ],
+      "id": "9b289f72-dae0-4c2a-936e-7fa5e8af8071",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "QWevDHmmrbb66CFS",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "dimensions": 512
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        656,
+        1136
+      ],
+      "id": "8da106e1-1727-4723-8b88-cc009f36ed2f",
+      "name": "Embeddings OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const responses = $input.all().map(item => item.json.output);\n\nreturn [{\n  json: {\n    responses\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        672
+      ],
+      "id": "f493ebbd-9bc5-4dc9-8907-6758844f409f",
+      "name": "ConsolidateAllAgentResponses"
+    },
+    {
+      "parameters": {
+        "text": "={{$json.body.message}}",
+        "guardrails": {
+          "keywords": "Kill, Hurt, Abusive Language, Threat",
+          "jailbreak": {
+            "value": {
+              "threshold": 0.7
+            }
+          },
+          "secretKeys": {
+            "value": {
+              "permissiveness": "permissive"
+            }
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.guardrails",
+      "typeVersion": 2,
+      "position": [
+        -1904,
+        368
+      ],
+      "id": "62a5abc0-16b6-4312-82be-a089c1ae7452",
+      "name": "Guardrails"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1984,
+        576
+      ],
+      "id": "1ee567f9-7e7c-45bd-a8ae-d990a56470f5",
+      "name": "OpenAI Chat Model7",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a polite person and know how to respond to someone's inappropriate request. \nAs we cannot respond to such queries. Based on below user query prepare a polite response for denial of service. Answer in no more than 2-3 sentences. Don't give long explainations or make any suggestions.\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -1600,
+        560
+      ],
+      "id": "9275f034-8ca3-4b78-b1d1-14debeb17450",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1616,
+        736
+      ],
+      "id": "b9e10c1e-ab55-4431-adb9-b874f39ab905",
+      "name": "OpenAI Chat Model8",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "customer-support",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -2272,
+        368
+      ],
+      "id": "95a883ce-9748-4248-9fd5-6f900303eb85",
+      "name": "Webhook",
+      "webhookId": "07c70f72-3a84-4e9a-b1c8-63d20b4efb3d"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2256,
+        672
+      ],
+      "id": "398c5c49-898b-4d81-a723-1bd88d6ba0d3",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -1280,
+        704
+      ],
+      "id": "9c17aef4-753b-4c3c-b8cf-b8038eb3e41e",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Search the product catalog via RAG. Use for specs, compatibility, recommendations, prices, product details.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        1312
+      ],
+      "id": "9f4311bb-c3e3-458f-ac22-5a94947a9e6b",
+      "name": "search_products",
+      "credentials": {
+        "postgres": {
+          "id": "02TtRAKC2NeJX82N",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an expert SQL developer.  Your task is to convert the user's natural language request into a valid and optimized SQL query.  Database Table: product_table  Schema: - product_id - title - brand - category - price - avg_rating - num_ratings  Instructions: 1. Carefully understand the user's request. 2. Generate a syntactically correct SQL query. 3. Use only the columns listed in the schema above. 4. Do not invent any tables or columns. 5. Use appropriate SQL clauses such as:    - SELECT    - WHERE    - ORDER BY    - GROUP BY    - HAVING    - LIMIT (or TOP if SQL Server is specified)    - Aggregate functions (COUNT, SUM, AVG, MIN, MAX) 6. Use aliases where they improve readability. 7. If the user's request is ambiguous or requires unavailable data, explain what is missing instead of guessing. 8. Return only the SQL query unless the user specifically asks for an explanation.  Table Name: product_table  Available Columns: product_id title brand category price avg_rating num_ratings\n9.Return only the SQL Query and no additional text "
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -368,
+        848
+      ],
+      "id": "b6779b7c-f7af-4c98-83e4-7066114da2e4",
+      "name": "generate sql query"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -448,
+        1056
+      ],
+      "id": "e4d1cf72-4ff5-4a44-97bb-eec002219ffc",
+      "name": "OpenAI Chat Model9",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        1440
+      ],
+      "id": "16b31e28-0b19-4b73-80d7-9927acd72098",
+      "name": "Embeddings OpenAI1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Uf1nPLxDf4uGu0gH",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Orchestration Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Orchestration Agent": {
+      "main": [
+        [
+          {
+            "node": "Order ID and Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order_Management_Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fallback_LLM_Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Product_Info_Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "FAQ_Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "Orchestration Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Synthesizer Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Fallback_LLM_Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Order_Management_Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Product_Info_Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Order_Management_Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return_Refund Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fallback_LLM_Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FAQ_Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "generate sql query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "FAQ_Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Order_Detail": {
+      "ai_tool": [
+        [
+          {
+            "node": "Order_Management_Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Return_Refund Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get_Return_Refund_Status1": {
+      "ai_tool": [
+        [
+          {
+            "node": "Return_Refund Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Return_Refund Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "ConsolidateAllAgentResponses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Order ID and Intent": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Context": {
+      "main": [
+        [
+          {
+            "node": "Orchestration Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "FAQ_Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ConsolidateAllAgentResponses": {
+      "main": [
+        [
+          {
+            "node": "Synthesizer Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Guardrails",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardrails": {
+      "main": [
+        [
+          {
+            "node": "Extract Context",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model8": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Guardrails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Synthesizer Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "search_products": {
+      "ai_tool": [
+        [
+          {
+            "node": "Product_Info_Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate sql query": {
+      "main": [
+        [
+          {
+            "node": "Product_Info_Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model9": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "generate sql query",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings OpenAI1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "search_products",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fdf1aa92-3820-4848-a9b1-dd1aa26496ec",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0064e0a6002b8c8ae2e30c25ca8dbf61a66cd75c4758a2d0db1554a7a32355ed"
+  },
+  "nodeGroups": [],
+  "id": "o2wv0Vr744132wL7",
+  "tags": []
+}
