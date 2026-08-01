@@ -24,7 +24,8 @@ load_dotenv(APP_DIR / ".env")
 
 DEFAULT_WEBHOOK = os.getenv(
     "N8N_WEBHOOK_URL",
-    "https://laughing-succotash-xrwxqp57v9p434vw-5678.app.github.dev/webhook/customer-support",
+    "http://localhost:5678/webhook/customer-support"
+    #3"https://laughing-succotash-xrwxqp57v9p434vw-5678.app.github.dev/webhook/customer-support",
 )
 REQUEST_TIMEOUT = int(os.getenv("N8N_TIMEOUT_SEC", "120"))
 
