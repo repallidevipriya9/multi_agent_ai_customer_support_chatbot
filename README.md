@@ -22,3 +22,12 @@ git push
 # Activate the Virtual Environment
 
 `venv\Scripts\activate`
+
+#Open streamlit(frontend)
+streamlit run frontend/streamlit_app.py
+
+#open uvicorn
+install pyton libararies - python install -r requirements.txt
+uvicorn backend.app.main:app
+
+#open n8n through command prompt - n8n start
