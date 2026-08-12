@@ -217,6 +217,9 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+[LocalizedFileNames]
+chatbot_integration (5).json=@chatbot_integration (5),0
+
 .vscode/
 .vs/
 *.pem
