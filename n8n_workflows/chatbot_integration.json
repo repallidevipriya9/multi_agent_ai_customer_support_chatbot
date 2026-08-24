@@ -219,7 +219,7 @@
                 },
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.intents }}}",
+                    "leftValue": "={{ $json.intents }}",
                     "rightValue": "order_status",
                     "operator": {
                       "type": "string",
