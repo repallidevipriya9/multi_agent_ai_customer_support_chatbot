@@ -1,6 +1,6 @@
-# 🤖 Multi-Agent AI Customer Support System
+# 🤖 Multi-Agent AI Customer Support Chatbot
 
-A **production-inspired multi-agent AI customer support system** built with **Python, FastAPI, Streamlit, n8n, Retrieval-Augmented Generation (RAG), PostgreSQL/Supabase, vector search, and OpenAI LLMs**.
+A **production-inspired multi-agent AI customer support Chatbot** built with **Python, FastAPI, Streamlit, n8n, Retrieval-Augmented Generation (RAG), PostgreSQL/Supabase, vector search, and OpenAI LLMs**.
 
 The system receives customer queries through a Streamlit chatbot, identifies user intent, dynamically routes requests to specialized AI agents, retrieves relevant information from APIs and knowledge bases, and generates a consolidated customer-friendly response.
 
