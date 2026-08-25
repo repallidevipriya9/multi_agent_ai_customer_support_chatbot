@@ -448,8 +448,8 @@ multiagent_AI_chatbot/
 ## 1. Clone the Repository
 
 ```bash
-git clone https://github.com/repallidevipriya9/capstone-project-grp1.git
-cd capstone-project-grp1
+git clone https://github.com/repallidevipriya9/multi_agent_ai_customer_support_chatbot.git
+cd multi_agent_ai_customer_support_chatbot
 ```
 
 ## 2. Create a Virtual Environment
